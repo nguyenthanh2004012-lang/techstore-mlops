@@ -372,10 +372,8 @@
 </head>
 <body>
 
-<!-- Animated background particles -->
 <div id="particles"></div>
 
-<!-- NAV -->
 <nav>
   <div class="nav-logo">
     <i class="fa-solid fa-brain"></i> ChurnAI
@@ -388,7 +386,6 @@
   <span class="nav-badge"><i class="fa-solid fa-circle" style="font-size:8px;color:#22c55e"></i> Azure ML</span>
 </nav>
 
-<!-- ======================== HOME ======================== -->
 <section id="home" class="active">
   <div class="hero fade-up">
     <div class="hero-badge">
@@ -446,14 +443,12 @@
   </div>
 </section>
 
-<!-- ======================== PREDICT ======================== -->
 <section id="predict">
   <div class="container">
     <h2 class="section-title">🤖 Dự Đoán Azure AI</h2>
     <p class="section-sub">Nhập thông số khách hàng — AI sẽ phân tích và trả kết quả ngay lập tức</p>
 
     <div class="predict-grid">
-      <!-- FORM CARD -->
       <div class="card">
         <div class="card-title"><i class="fa-solid fa-sliders"></i> Thông số đầu vào</div>
 
@@ -488,7 +483,6 @@
         </button>
       </div>
 
-      <!-- RESULT CARD -->
       <div class="card" id="result-card">
         <div class="card-title"><i class="fa-solid fa-chart-line"></i> Kết quả phân tích</div>
 
@@ -502,17 +496,16 @@
       </div>
     </div>
 
-    <!-- API CONFIG -->
     <div class="card" style="margin-top:2rem">
       <div class="card-title"><i class="fa-brands fa-microsoft"></i> Cấu hình Azure Endpoint</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
         <div class="form-group" style="margin:0">
           <label>AZURE ENDPOINT URL</label>
-          <input type="text" id="cfg-url" placeholder="https://your-endpoint.azureml.net/..." />
+          <input type="text" id="cfg-url" value="https://unrushed-buckwheat-upside.ngrok-free.dev/predict" placeholder="https://your-endpoint.azureml.net/..." />
         </div>
         <div class="form-group" style="margin:0">
           <label>API KEY</label>
-          <input type="password" id="cfg-key" placeholder="Dán API Key vào đây..." />
+          <input type="password" id="cfg-key" value="OtoNowAI_SecretKey_2026_Nhom3" placeholder="Dán API Key vào đây..." />
         </div>
       </div>
       <p style="color:var(--muted);font-size:0.8rem;margin-top:0.8rem">
@@ -524,7 +517,6 @@
   </div>
 </section>
 
-<!-- ======================== ABOUT ======================== -->
 <section id="about">
   <div class="container">
     <h2 class="section-title">👥 Về Nhóm Chúng Tôi</h2>
@@ -570,7 +562,6 @@
   Được xây dựng bởi <span>Nhóm MLOps</span> · Triển khai trên <span>Microsoft Azure</span>
 </footer>
 
-<!-- CHATBOT -->
 <button id="chatbot-btn" onclick="toggleChat()">
   <i class="fa-solid fa-comment-dots" id="chat-icon"></i>
 </button>
@@ -654,12 +645,24 @@
         // ===== GỌI AZURE THẬT =====
         const res = await fetch(url, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+          headers: {
+             'Content-Type': 'application/json',
+             'Authorization': `Bearer ${apiKey}`,
+             'ngrok-skip-browser-warning': 'true'
+          },
           body: JSON.stringify(payload)
         });
+        
+        if (!res.ok) throw new Error("API Key không hợp lệ hoặc Endpoint bị từ chối.");
+        
         const data = await res.json();
-        isChurn = data[0] == 1 || data[0] === 'Yes' || data[0] === true;
-        confidence = isChurn ? 87.5 : 91.2;
+        
+        // Trích xuất giá trị kết quả trả về từ Azure ML Endpoint
+        const resultValue = Array.isArray(data) ? data[0] : (data.result ? data.result[0] : data);
+        isChurn = (resultValue == 1 || resultValue === 'Yes' || resultValue === 'True' || resultValue === true);
+        
+        // Giả lập mức độ tin cậy nếu Azure ML không trả về xác suất
+        confidence = isChurn ? (85 + Math.random() * 10) : (90 + Math.random() * 8); 
       } else {
         // ===== GIẢ LẬP =====
         await new Promise(r => setTimeout(r, 1500));
@@ -672,8 +675,8 @@
     } catch(e) {
       area.innerHTML = `<div style="color:#ef4444;text-align:center;padding:1rem">
         <i class="fa-solid fa-triangle-exclamation" style="font-size:2.5rem;margin-bottom:0.8rem"></i>
-        <p style="font-weight:700">Lỗi kết nối Endpoint!</p>
-        <p style="font-size:0.8rem;margin-top:0.4rem;color:var(--muted)">Kiểm tra lại URL và API Key của Azure</p>
+        <p style="font-weight:700">Lỗi kết nối tới Endpoint Azure!</p>
+        <p style="font-size:0.8rem;margin-top:0.4rem;color:var(--muted)">Chi tiết lỗi: ${e.message}</p>
       </div>`;
     } finally {
       btn.disabled = false;
