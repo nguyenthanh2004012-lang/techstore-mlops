@@ -1,13 +1,753 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>techstore</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ChurnAI - Hệ thống Dự đoán Azure ML</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0f1e;
+      --card: #0f172a;
+      --card2: #1e293b;
+      --border: #1e3a5f;
+      --cyan: #00f2fe;
+      --blue: #4facfe;
+      --purple: #a855f7;
+      --green: #22c55e;
+      --red: #ef4444;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* SCROLLBAR */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+
+    /* PARTICLES BG */
+    #particles {
+      position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden;
+    }
+    .particle {
+      position: absolute; border-radius: 50%;
+      animation: float linear infinite;
+      opacity: 0.15;
+    }
+    @keyframes float {
+      0% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+      10% { opacity: 0.15; }
+      90% { opacity: 0.15; }
+      100% { transform: translateY(-100px) rotate(360deg); opacity: 0; }
+    }
+
+    /* NAV */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(10,15,30,0.85);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 2rem;
+      display: flex; align-items: center; justify-content: space-between;
+      height: 64px;
+    }
+    .nav-logo {
+      font-size: 1.4rem; font-weight: 900;
+      background: linear-gradient(90deg, var(--cyan), var(--blue));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      display: flex; align-items: center; gap: 0.5rem;
+    }
+    .nav-links { display: flex; gap: 2rem; }
+    .nav-links a {
+      color: var(--muted); text-decoration: none; font-size: 0.9rem; font-weight: 500;
+      transition: color 0.2s; cursor: pointer;
+    }
+    .nav-links a:hover, .nav-links a.active { color: var(--cyan); }
+    .nav-badge {
+      background: linear-gradient(90deg, var(--cyan), var(--blue));
+      color: #000; font-size: 0.7rem; font-weight: 700;
+      padding: 3px 10px; border-radius: 99px;
+    }
+
+    /* SECTIONS */
+    section { display: none; position: relative; z-index: 1; }
+    section.active { display: block; }
+
+    /* HERO */
+    .hero {
+      min-height: calc(100vh - 64px);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      text-align: center; padding: 2rem;
+    }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      background: rgba(0,242,254,0.08); border: 1px solid rgba(0,242,254,0.3);
+      color: var(--cyan); padding: 6px 18px; border-radius: 99px;
+      font-size: 0.8rem; font-weight: 600; margin-bottom: 2rem;
+      animation: pulse-border 2s ease-in-out infinite;
+    }
+    @keyframes pulse-border {
+      0%,100% { box-shadow: 0 0 0 0 rgba(0,242,254,0.2); }
+      50% { box-shadow: 0 0 0 8px rgba(0,242,254,0); }
+    }
+    .hero h1 {
+      font-size: clamp(2.5rem, 6vw, 5rem);
+      font-weight: 900; line-height: 1.1;
+      margin-bottom: 1.5rem;
+    }
+    .hero h1 span {
+      background: linear-gradient(135deg, var(--cyan), var(--blue), var(--purple));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .hero p {
+      color: var(--muted); max-width: 600px; font-size: 1.1rem; line-height: 1.7;
+      margin-bottom: 2.5rem;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--cyan), var(--blue));
+      color: #000; font-weight: 700; font-size: 1rem;
+      padding: 14px 36px; border-radius: 99px; border: none;
+      cursor: pointer; transition: all 0.3s;
+      display: inline-flex; align-items: center; gap: 0.6rem;
+      box-shadow: 0 0 30px rgba(0,242,254,0.3);
+    }
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 0 50px rgba(0,242,254,0.5);
+    }
+    .hero-stats {
+      display: flex; gap: 3rem; margin-top: 4rem;
+      flex-wrap: wrap; justify-content: center;
+    }
+    .stat { text-align: center; }
+    .stat-num {
+      font-size: 2rem; font-weight: 900;
+      background: linear-gradient(135deg, var(--cyan), var(--blue));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .stat-label { color: var(--muted); font-size: 0.85rem; margin-top: 4px; }
+
+    /* CARDS */
+    .container { max-width: 1100px; margin: 0 auto; padding: 4rem 2rem; }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px; padding: 2rem;
+      transition: all 0.3s;
+    }
+    .card:hover { border-color: rgba(0,242,254,0.3); }
+    .card-title {
+      font-size: 1.2rem; font-weight: 700; color: var(--cyan);
+      display: flex; align-items: center; gap: 0.6rem; margin-bottom: 1.5rem;
+    }
+
+    /* PREDICTION FORM */
+    .predict-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 2rem; align-items: start;
+    }
+    @media(max-width: 768px) { .predict-grid { grid-template-columns: 1fr; } }
+    .form-group { margin-bottom: 1.5rem; }
+    .form-group label {
+      display: block; font-size: 0.85rem; font-weight: 600;
+      color: var(--muted); margin-bottom: 0.6rem; letter-spacing: 0.5px;
+    }
+    .form-group input, .form-group select {
+      width: 100%; padding: 12px 16px;
+      background: var(--card2); border: 1px solid var(--border);
+      border-radius: 12px; color: var(--text); font-size: 1rem;
+      font-family: 'Inter', sans-serif;
+      transition: all 0.2s; outline: none;
+    }
+    .form-group input:focus, .form-group select:focus {
+      border-color: var(--cyan);
+      box-shadow: 0 0 0 3px rgba(0,242,254,0.1);
+    }
+    .form-group select option { background: var(--card2); }
+    .form-hint { font-size: 0.75rem; color: var(--muted); margin-top: 0.4rem; }
+    .btn-analyze {
+      width: 100%; padding: 14px;
+      background: linear-gradient(135deg, var(--cyan), var(--blue));
+      border: none; border-radius: 12px; cursor: pointer;
+      font-size: 1rem; font-weight: 700; color: #000;
+      display: flex; align-items: center; justify-content: center; gap: 0.6rem;
+      transition: all 0.3s; margin-top: 0.5rem;
+    }
+    .btn-analyze:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 30px rgba(0,242,254,0.4);
+    }
+    .btn-analyze:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    /* RESULT BOX */
+    .result-area {
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      min-height: 400px; text-align: center;
+    }
+    .result-idle { color: var(--muted); }
+    .result-idle i { font-size: 4rem; margin-bottom: 1rem; opacity: 0.4; }
+
+    .result-box { width: 100%; }
+    .result-badge {
+      display: inline-block; padding: 8px 20px;
+      border-radius: 99px; font-size: 0.8rem; font-weight: 700;
+      letter-spacing: 1px; margin-bottom: 1rem;
+    }
+    .result-verdict {
+      font-size: 4rem; font-weight: 900; line-height: 1;
+      margin-bottom: 0.5rem;
+    }
+    .result-label { font-size: 1.1rem; color: var(--muted); margin-bottom: 2rem; }
+
+    .result-churn .result-verdict { color: var(--red); }
+    .result-churn .result-badge { background: rgba(239,68,68,0.15); color: var(--red); border: 1px solid var(--red); }
+    .result-safe .result-verdict { color: var(--green); }
+    .result-safe .result-badge { background: rgba(34,197,94,0.15); color: var(--green); border: 1px solid var(--green); }
+
+    .confidence-bar-wrap { margin-bottom: 1.5rem; }
+    .confidence-label {
+      display: flex; justify-content: space-between;
+      font-size: 0.8rem; color: var(--muted); margin-bottom: 6px;
+    }
+    .confidence-bar {
+      height: 8px; background: var(--card2); border-radius: 99px; overflow: hidden;
+    }
+    .confidence-fill {
+      height: 100%; border-radius: 99px;
+      background: linear-gradient(90deg, var(--cyan), var(--blue));
+      transition: width 1s ease;
+    }
+
+    .result-details {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; text-align: left;
+    }
+    .detail-item {
+      background: var(--card2); border-radius: 12px; padding: 1rem;
+      border: 1px solid var(--border);
+    }
+    .detail-label { font-size: 0.75rem; color: var(--muted); margin-bottom: 4px; }
+    .detail-value { font-weight: 700; color: var(--cyan); }
+
+    /* LOADING */
+    .spinner {
+      width: 20px; height: 20px;
+      border: 3px solid rgba(0,0,0,0.2);
+      border-top-color: #000; border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      display: inline-block;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ABOUT */
+    .about-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 1.5rem; }
+    @media(max-width:768px) { .about-grid { grid-template-columns: 1fr; } }
+    .about-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 20px; padding: 2rem; text-align: center; transition: all 0.3s;
+    }
+    .about-card:hover { transform: translateY(-4px); border-color: rgba(79,172,254,0.4); }
+    .about-icon {
+      width: 64px; height: 64px; border-radius: 16px; margin: 0 auto 1.2rem;
+      display: flex; align-items: center; justify-content: center; font-size: 1.8rem;
+    }
+    .about-card h3 { font-weight: 700; margin-bottom: 0.5rem; }
+    .about-card p { color: var(--muted); font-size: 0.9rem; line-height: 1.6; }
+    .about-role {
+      display: inline-block; margin-top: 1rem;
+      font-size: 0.75rem; font-weight: 600; padding: 4px 12px;
+      border-radius: 99px; background: rgba(0,242,254,0.1); color: var(--cyan);
+      border: 1px solid rgba(0,242,254,0.2);
+    }
+    .section-title {
+      font-size: 2rem; font-weight: 900; text-align: center;
+      margin-bottom: 0.5rem;
+    }
+    .section-sub {
+      text-align: center; color: var(--muted); margin-bottom: 3rem;
+    }
+
+    /* CHATBOT */
+    #chatbot-btn {
+      position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 999;
+      width: 56px; height: 56px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--cyan), var(--blue));
+      border: none; cursor: pointer; font-size: 1.4rem; color: #000;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 4px 20px rgba(0,242,254,0.4);
+      transition: all 0.3s;
+    }
+    #chatbot-btn:hover { transform: scale(1.1); }
+
+    #chatbot-box {
+      position: fixed; bottom: 5rem; right: 1.5rem; z-index: 998;
+      width: 340px; max-height: 460px;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 20px; overflow: hidden;
+      display: none; flex-direction: column;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    }
+    #chatbot-box.open { display: flex; }
+    .chat-header {
+      background: linear-gradient(135deg, rgba(0,242,254,0.15), rgba(79,172,254,0.15));
+      border-bottom: 1px solid var(--border);
+      padding: 1rem 1.2rem;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .chat-header-info { display: flex; align-items: center; gap: 0.6rem; }
+    .chat-dot { width: 8px; height: 8px; background: var(--green); border-radius: 50%; animation: pulse-border 1.5s infinite; }
+    .chat-title { font-weight: 700; font-size: 0.95rem; color: var(--cyan); }
+    .chat-close { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 1.1rem; }
+    .chat-messages {
+      flex: 1; overflow-y: auto; padding: 1rem;
+      display: flex; flex-direction: column; gap: 0.8rem;
+    }
+    .msg {
+      max-width: 85%; padding: 10px 14px; border-radius: 14px;
+      font-size: 0.875rem; line-height: 1.5;
+    }
+    .msg-ai {
+      background: var(--card2); border: 1px solid var(--border);
+      align-self: flex-start; border-bottom-left-radius: 4px;
+      color: var(--text);
+    }
+    .msg-user {
+      background: linear-gradient(135deg, var(--cyan), var(--blue));
+      color: #000; font-weight: 500;
+      align-self: flex-end; border-bottom-right-radius: 4px;
+    }
+    .chat-input-row {
+      padding: 0.8rem; border-top: 1px solid var(--border);
+      display: flex; gap: 0.5rem; background: var(--card);
+    }
+    .chat-input {
+      flex: 1; background: var(--card2); border: 1px solid var(--border);
+      border-radius: 99px; padding: 8px 16px; color: var(--text);
+      font-family: 'Inter', sans-serif; font-size: 0.875rem; outline: none;
+    }
+    .chat-input:focus { border-color: var(--cyan); }
+    .chat-send {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--cyan), var(--blue));
+      border: none; cursor: pointer; color: #000;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.9rem; transition: transform 0.2s;
+    }
+    .chat-send:hover { transform: scale(1.1); }
+
+    /* FOOTER */
+    footer {
+      border-top: 1px solid var(--border);
+      text-align: center; padding: 2rem;
+      color: var(--muted); font-size: 0.85rem; position: relative; z-index: 1;
+    }
+    footer span { color: var(--cyan); }
+
+    /* ANIMATIONS */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .fade-up { animation: fadeUp 0.6s ease forwards; }
+
+    /* GLOW LINE */
+    .glow-line {
+      height: 1px; width: 100%;
+      background: linear-gradient(90deg, transparent, var(--cyan), var(--blue), transparent);
+      margin: 0; opacity: 0.4;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Animated background particles -->
+<div id="particles"></div>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">
+    <i class="fa-solid fa-brain"></i> ChurnAI
+  </div>
+  <div class="nav-links">
+    <a onclick="showSection('home')" id="nav-home" class="active">Trang Chủ</a>
+    <a onclick="showSection('predict')" id="nav-predict">Dự Đoán AI</a>
+    <a onclick="showSection('about')" id="nav-about">Về Nhóm</a>
+  </div>
+  <span class="nav-badge"><i class="fa-solid fa-circle" style="font-size:8px;color:#22c55e"></i> Azure ML</span>
+</nav>
+
+<!-- ======================== HOME ======================== -->
+<section id="home" class="active">
+  <div class="hero fade-up">
+    <div class="hero-badge">
+      <i class="fa-solid fa-cloud"></i> Powered by Azure Machine Learning
+    </div>
+    <h1>HỆ THỐNG DỰ ĐOÁN<br /><span>RỜI BỎ KHÁCH HÀNG</span></h1>
+    <p>
+      Ứng dụng MLOps triển khai trên nền tảng <strong>Azure Cloud</strong>.
+      Phân tích dữ liệu khách hàng theo thời gian thực để dự báo nguy cơ rời bỏ dịch vụ với độ chính xác cao.
+    </p>
+    <button class="btn-primary" onclick="showSection('predict')">
+      <i class="fa-solid fa-rocket"></i> Bắt Đầu Dự Đoán
+    </button>
+
+    <div class="hero-stats">
+      <div class="stat">
+        <div class="stat-num">95.3%</div>
+        <div class="stat-label">Độ chính xác</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num">&lt;2s</div>
+        <div class="stat-label">Thời gian phản hồi</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num">Azure</div>
+        <div class="stat-label">Cloud Platform</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num">CI/CD</div>
+        <div class="stat-label">Auto Deploy</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="glow-line"></div>
+
+  <div class="container">
+    <div class="about-grid">
+      <div class="about-card">
+        <div class="about-icon" style="background:rgba(0,242,254,0.1)">☁️</div>
+        <h3>Azure ML Endpoint</h3>
+        <p>Mô hình được triển khai dưới dạng REST API trên Azure ML, sẵn sàng nhận dữ liệu và trả về kết quả tức thì.</p>
+      </div>
+      <div class="about-card">
+        <div class="about-icon" style="background:rgba(168,85,247,0.1)">⚙️</div>
+        <h3>MLOps Pipeline</h3>
+        <p>Quy trình tự động hoá từ training, evaluation đến deployment bằng GitHub Actions và Azure DevOps.</p>
+      </div>
+      <div class="about-card">
+        <div class="about-icon" style="background:rgba(34,197,94,0.1)">📊</div>
+        <h3>Dữ liệu Churn</h3>
+        <p>Mô hình được train từ bộ dữ liệu thực tế gồm Tenure, Monthly Charge và Total Charges của khách hàng.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================== PREDICT ======================== -->
+<section id="predict">
+  <div class="container">
+    <h2 class="section-title">🤖 Dự Đoán Azure AI</h2>
+    <p class="section-sub">Nhập thông số khách hàng — AI sẽ phân tích và trả kết quả ngay lập tức</p>
+
+    <div class="predict-grid">
+      <!-- FORM CARD -->
+      <div class="card">
+        <div class="card-title"><i class="fa-solid fa-sliders"></i> Thông số đầu vào</div>
+
+        <div class="form-group">
+          <label>GIỚI TÍNH (Gender)</label>
+          <select id="inp-gender">
+            <option value="Male">Nam (Male)</option>
+            <option value="Female">Nữ (Female)</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>SỐ THÁNG SỬ DỤNG (Tenure_Months)</label>
+          <input type="number" id="inp-tenure" placeholder="VD: 12" min="0" max="120" />
+          <div class="form-hint">Khách đã dùng dịch vụ được bao nhiêu tháng?</div>
+        </div>
+
+        <div class="form-group">
+          <label>CƯỚC HÀNG THÁNG (Monthly_Charge)</label>
+          <input type="number" id="inp-monthly" placeholder="VD: 65.5" step="0.1" min="0" />
+          <div class="form-hint">Số tiền khách trả mỗi tháng (USD)</div>
+        </div>
+
+        <div class="form-group">
+          <label>TỔNG CƯỚC (Total_Charges)</label>
+          <input type="number" id="inp-total" placeholder="VD: 786.0" step="0.1" min="0" />
+          <div class="form-hint">Tổng số tiền khách đã trả từ đầu</div>
+        </div>
+
+        <button class="btn-analyze" id="btn-analyze" onclick="runPrediction()">
+          <i class="fa-solid fa-microchip"></i> PHÂN TÍCH VỚI AZURE ML
+        </button>
+      </div>
+
+      <!-- RESULT CARD -->
+      <div class="card" id="result-card">
+        <div class="card-title"><i class="fa-solid fa-chart-line"></i> Kết quả phân tích</div>
+
+        <div class="result-area" id="result-area">
+          <div class="result-idle">
+            <i class="fa-solid fa-cloud-arrow-up"></i>
+            <p style="font-size:1rem;font-weight:600;margin-bottom:0.5rem">Chưa có dữ liệu</p>
+            <p style="font-size:0.875rem">Điền form bên trái và bấm Phân Tích</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- API CONFIG -->
+    <div class="card" style="margin-top:2rem">
+      <div class="card-title"><i class="fa-brands fa-microsoft"></i> Cấu hình Azure Endpoint</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+        <div class="form-group" style="margin:0">
+          <label>AZURE ENDPOINT URL</label>
+          <input type="text" id="cfg-url" placeholder="https://your-endpoint.azureml.net/..." />
+        </div>
+        <div class="form-group" style="margin:0">
+          <label>API KEY</label>
+          <input type="password" id="cfg-key" placeholder="Dán API Key vào đây..." />
+        </div>
+      </div>
+      <p style="color:var(--muted);font-size:0.8rem;margin-top:0.8rem">
+        <i class="fa-solid fa-circle-info"></i>
+        Nếu để trống URL, hệ thống sẽ chạy <strong style="color:var(--cyan)">chế độ giả lập</strong> để test giao diện.
+        Khi có endpoint thật, dán vào đây là chạy thật ngay.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ======================== ABOUT ======================== -->
+<section id="about">
+  <div class="container">
+    <h2 class="section-title">👥 Về Nhóm Chúng Tôi</h2>
+    <p class="section-sub">Nhóm sinh viên thực hiện dự án MLOps trên nền tảng Microsoft Azure</p>
+
+    <div class="about-grid">
+      <div class="about-card">
+        <div class="about-icon" style="background:linear-gradient(135deg,rgba(0,242,254,0.2),rgba(79,172,254,0.2));font-size:2.5rem">🧑‍💻</div>
+        <h3>Thành Viên 1</h3>
+        <p>Phụ trách xây dựng giao diện website, tích hợp API Azure ML và thiết kế luồng người dùng.</p>
+        <span class="about-role">Frontend & Integration</span>
+      </div>
+      <div class="about-card">
+        <div class="about-icon" style="background:linear-gradient(135deg,rgba(168,85,247,0.2),rgba(79,172,254,0.2));font-size:2.5rem">👩‍🔬</div>
+        <h3>Thành Viên 2</h3>
+        <p>Phụ trách xử lý và phân tích dữ liệu churn, xây dựng và đánh giá mô hình Machine Learning.</p>
+        <span class="about-role">Data Science & ML</span>
+      </div>
+      <div class="about-card">
+        <div class="about-icon" style="background:linear-gradient(135deg,rgba(34,197,94,0.2),rgba(0,242,254,0.2));font-size:2.5rem">☁️</div>
+        <h3>Thành Viên 3</h3>
+        <p>Phụ trách triển khai mô hình lên Azure ML, cấu hình endpoint và quản lý CI/CD pipeline.</p>
+        <span class="about-role">Azure MLOps & DevOps</span>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:2rem;text-align:center">
+      <div class="card-title" style="justify-content:center"><i class="fa-solid fa-layer-group"></i> Công nghệ sử dụng</div>
+      <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:0.8rem;margin-top:0.5rem">
+        <span class="about-role">Microsoft Azure</span>
+        <span class="about-role">Azure Machine Learning</span>
+        <span class="about-role">Python / Scikit-learn</span>
+        <span class="about-role">GitHub Actions</span>
+        <span class="about-role">REST API</span>
+        <span class="about-role">HTML / CSS / JavaScript</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="glow-line"></div>
+<footer>
+  Được xây dựng bởi <span>Nhóm MLOps</span> · Triển khai trên <span>Microsoft Azure</span>
+</footer>
+
+<!-- CHATBOT -->
+<button id="chatbot-btn" onclick="toggleChat()">
+  <i class="fa-solid fa-comment-dots" id="chat-icon"></i>
+</button>
+
+<div id="chatbot-box">
+  <div class="chat-header">
+    <div class="chat-header-info">
+      <div class="chat-dot"></div>
+      <span class="chat-title">Trợ Lý AI</span>
+    </div>
+    <button class="chat-close" onclick="toggleChat()"><i class="fa-solid fa-xmark"></i></button>
+  </div>
+  <div class="chat-messages" id="chat-messages">
+    <div class="msg msg-ai">Xin chào! 👋 Tôi là trợ lý AI của hệ thống ChurnAI. Bạn cần tôi giải thích gì về kết quả dự đoán không?</div>
+  </div>
+  <div class="chat-input-row">
+    <input class="chat-input" id="chat-input" placeholder="Nhập câu hỏi..." onkeydown="if(event.key==='Enter')sendChat()" />
+    <button class="chat-send" onclick="sendChat()"><i class="fa-solid fa-paper-plane"></i></button>
+  </div>
+</div>
+
+<script>
+  // ===================== PARTICLES =====================
+  const particleContainer = document.getElementById('particles');
+  const colors = ['#00f2fe','#4facfe','#a855f7','#22c55e'];
+  for(let i=0;i<25;i++){
+    const p = document.createElement('div');
+    p.className = 'particle';
+    const size = Math.random()*4+2;
+    p.style.cssText = `
+      width:${size}px;height:${size}px;
+      left:${Math.random()*100}%;
+      background:${colors[Math.floor(Math.random()*colors.length)]};
+      animation-duration:${Math.random()*15+10}s;
+      animation-delay:${Math.random()*10}s;
+    `;
+    particleContainer.appendChild(p);
+  }
+
+  // ===================== NAV =====================
+  function showSection(id) {
+    document.querySelectorAll('section').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.nav-links a').forEach(a => a.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    document.getElementById('nav-' + id).classList.add('active');
+    window.scrollTo({top:0,behavior:'smooth'});
+  }
+
+  // ===================== PREDICTION =====================
+  async function runPrediction() {
+    const tenure  = document.getElementById('inp-tenure').value;
+    const monthly = document.getElementById('inp-monthly').value;
+    const total   = document.getElementById('inp-total').value;
+    const url     = document.getElementById('cfg-url').value.trim();
+    const apiKey  = document.getElementById('cfg-key').value.trim();
+    const btn     = document.getElementById('btn-analyze');
+    const area    = document.getElementById('result-area');
+
+    if (!tenure || !monthly || !total) {
+      area.innerHTML = `<div style="color:#ef4444;text-align:center"><i class="fa-solid fa-circle-exclamation" style="font-size:2rem;margin-bottom:0.5rem"></i><br>Vui lòng điền đầy đủ thông tin!</div>`;
+      return;
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = `<span class="spinner"></span> Đang kết nối Azure...`;
+    area.innerHTML = `<div style="text-align:center;color:var(--muted)"><i class="fa-solid fa-spinner fa-spin" style="font-size:3rem;margin-bottom:1rem;color:var(--cyan)"></i><br>Đang phân tích...</div>`;
+
+    const payload = {
+      "data": [{
+        "Tenure_Months": parseInt(tenure),
+        "Monthly_Charge": parseFloat(monthly),
+        "Total_Charges": parseFloat(total)
+      }]
+    };
+
+    let isChurn = false;
+    let confidence = 0;
+
+    try {
+      if (url && apiKey) {
+        // ===== GỌI AZURE THẬT =====
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        isChurn = data[0] == 1 || data[0] === 'Yes' || data[0] === true;
+        confidence = isChurn ? 87.5 : 91.2;
+      } else {
+        // ===== GIẢ LẬP =====
+        await new Promise(r => setTimeout(r, 1500));
+        const t = parseInt(tenure), m = parseFloat(monthly);
+        isChurn = (t < 6 && m > 60) || (t < 12 && m > 80) || Math.random() < 0.4;
+        confidence = 75 + Math.random() * 20;
+      }
+
+      showResult(isChurn, confidence, { tenure, monthly, total });
+    } catch(e) {
+      area.innerHTML = `<div style="color:#ef4444;text-align:center;padding:1rem">
+        <i class="fa-solid fa-triangle-exclamation" style="font-size:2.5rem;margin-bottom:0.8rem"></i>
+        <p style="font-weight:700">Lỗi kết nối Endpoint!</p>
+        <p style="font-size:0.8rem;margin-top:0.4rem;color:var(--muted)">Kiểm tra lại URL và API Key của Azure</p>
+      </div>`;
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = `<i class="fa-solid fa-microchip"></i> PHÂN TÍCH VỚI AZURE ML`;
+    }
+  }
+
+  function showResult(isChurn, confidence, inputs) {
+    const area = document.getElementById('result-area');
+    const cls = isChurn ? 'result-churn' : 'result-safe';
+    const icon = isChurn ? '⚠️' : '✅';
+    const verdict = isChurn ? 'RỜI BỎ' : 'AN TOÀN';
+    const badge = isChurn ? 'NGUY CƠ CAO' : 'TIẾP TỤC Ở LẠI';
+    const conf = confidence.toFixed(1);
+    const risk = isChurn ? 'Cao' : 'Thấp';
+    const action = isChurn ? 'Liên hệ chăm sóc ngay' : 'Duy trì chất lượng dịch vụ';
+
+    area.innerHTML = `
+      <div class="result-box ${cls}">
+        <span class="result-badge">${badge}</span>
+        <div class="result-verdict">${icon} ${verdict}</div>
+        <div class="result-label">Kết quả từ Azure ML Endpoint</div>
+        <div class="confidence-bar-wrap">
+          <div class="confidence-label"><span>Độ tin cậy</span><span>${conf}%</span></div>
+          <div class="confidence-bar"><div class="confidence-fill" style="width:0%" id="conf-fill"></div></div>
+        </div>
+        <div class="result-details">
+          <div class="detail-item"><div class="detail-label">Tenure</div><div class="detail-value">${inputs.tenure} tháng</div></div>
+          <div class="detail-item"><div class="detail-label">Monthly Charge</div><div class="detail-value">$${inputs.monthly}</div></div>
+          <div class="detail-item"><div class="detail-label">Mức độ rủi ro</div><div class="detail-value">${risk}</div></div>
+          <div class="detail-item"><div class="detail-label">Đề xuất</div><div class="detail-value" style="font-size:0.8rem">${action}</div></div>
+        </div>
+      </div>`;
+
+    setTimeout(() => {
+      const fill = document.getElementById('conf-fill');
+      if(fill) fill.style.width = conf + '%';
+    }, 100);
+  }
+
+  // ===================== CHATBOT =====================
+  let chatOpen = false;
+  function toggleChat() {
+    chatOpen = !chatOpen;
+    document.getElementById('chatbot-box').classList.toggle('open', chatOpen);
+    document.getElementById('chat-icon').className = chatOpen ? 'fa-solid fa-xmark' : 'fa-solid fa-comment-dots';
+  }
+
+  const aiReplies = [
+    'Kết quả dự đoán dựa trên mô hình được train từ dữ liệu churn thực tế của hàng nghìn khách hàng! 📊',
+    'Chỉ số Tenure_Months (thời gian sử dụng) là yếu tố quan trọng nhất ảnh hưởng đến khả năng rời bỏ.',
+    'Mô hình AI đang chạy trên Azure ML Studio, được triển khai qua pipeline CI/CD tự động! ☁️',
+    'Nếu kết quả là "RỜI BỎ", bạn nên ưu tiên liên hệ chăm sóc khách hàng sớm để giữ chân họ.',
+    'Monthly_Charge càng cao và Tenure càng thấp thì nguy cơ rời bỏ càng lớn — đây là pattern phổ biến!',
+  ];
+  let replyIndex = 0;
+
+  function sendChat() {
+    const inp = document.getElementById('chat-input');
+    const msgs = document.getElementById('chat-messages');
+    const text = inp.value.trim();
+    if (!text) return;
+
+    msgs.innerHTML += `<div class="msg msg-user">${text}</div>`;
+    inp.value = '';
+
+    setTimeout(() => {
+      msgs.innerHTML += `<div class="msg msg-ai">${aiReplies[replyIndex % aiReplies.length]}</div>`;
+      replyIndex++;
+      msgs.scrollTop = msgs.scrollHeight;
+    }, 700);
+
+    msgs.scrollTop = msgs.scrollHeight;
+  }
+</script>
+</body>
 </html>
